@@ -145,18 +145,6 @@ Optionally, it uses memory to:
 
 ---
 
-## 📄 License
-
-This project is open-source under the [MIT License](LICENSE).
-
----
-
 ## 🙋 About the Author
 
 Built by [Dimitrios Diamantidis](https://github.com/yourusername), a data specialist who loves combining AI with real business tools.
-
----
-
-## ⭐ Like This Project?
-
-Feel free to fork it, give it a ⭐️, or connect with me on [LinkedIn](https://www.linkedin.com/in/yourprofile) to chat more about AI & data projects!
