@@ -37,7 +37,7 @@ This is a smart AI chatbot that connects **OpenAI's GPT-3.5** with a **company d
 
 ## 📸 Screenshot
 
-![Screenshot](screenshot.png)
+![Screenshot](chat_screenshot.jpeg)
 
 *(Add your own screenshot if you want)*
 
