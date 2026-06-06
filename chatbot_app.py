@@ -1,69 +1,76 @@
-# !pip install langchain langchain-community langchain-experimental openai
-# !pip install python-dotenv sqlalchemy
+"""Natural-language-to-SQL chatbot over a company database.
+
+Connects an OpenAI chat model to a SQLite database through LangChain's
+SQL agent, wrapped in a Streamlit chat interface.
+"""
 
 import os
-from dotenv import load_dotenv
 import streamlit as st
-from langchain.chat_models import ChatOpenAI
-from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
-from sqlalchemy import create_engine
-from langchain.sql_database import SQLDatabase
-from langchain.memory import ConversationBufferMemory
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
+from langchain_community.utilities import SQLDatabase
+from langchain_community.agent_toolkits import create_sql_agent
 
-# Load API key
-load_dotenv()
-openai_api_key = os.getenv("OPENAI_API_KEY")
-
-# Setup LLM
-llm = ChatOpenAI(openai_api_key=openai_api_key, model="gpt-3.5-turbo", temperature=0)
-
-# Connect to Databse
-db_path = "mock_company.db"
-db = SQLDatabase.from_uri(f"sqlite:///{db_path}")
-tools_kit = SQLDatabaseToolkit(db=db, llm=llm)
-tools = tools_kit.get_tools()
-
-# Memory
-memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+DB_PATH = "mock_company.db"
+MODEL_NAME = "gpt-4o-mini"
 
 
-# Build the Agent 
-from langchain.agents import initialize_agent
+def load_database(db_path: str = DB_PATH) -> SQLDatabase:
+    """Open a read-only SQL connection to the SQLite database."""
+    return SQLDatabase.from_uri(f"sqlite:///{db_path}")
 
-agent_executor = initialize_agent(
-    tools = tools,
-    llm = llm,
-    agent = "zero-shot-react-description",
-    memory=memory,
-    verbose = True
-)
 
-# Streamlit UI
-st.set_page_config(page_title="Company Chatbot", layout="wide")
-st.title("🤖 Company Assistant Chatbot")
+def build_agent(db: SQLDatabase, api_key: str):
+    """Create a SQL agent backed by an OpenAI chat model."""
+    llm = ChatOpenAI(api_key=api_key, model=MODEL_NAME, temperature=0)
+    return create_sql_agent(llm=llm, db=db, agent_type="openai-tools", verbose=True)
 
-# Chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
 
-# Show chat history
-for msg in st.session_state.messages:
-    st.chat_message(msg["role"]).write(msg["content"])
+def get_response(agent, question: str) -> str:
+    """Run a natural-language question through the agent and return the answer."""
+    result = agent.invoke({"input": question})
+    return result["output"]
 
-# Get user input
-user_input = st.chat_input("Ask me about orders, products, stock...")
 
-if user_input:
-    # Display user message
-    st.chat_message("user").write(user_input)
-    st.session_state.messages.append({"role": "user", "content": user_input})
+@st.cache_resource
+def get_agent():
+    """Build the agent once and reuse it across reruns."""
+    load_dotenv()
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        st.error("OPENAI_API_KEY is not set. Add it to your .env file.")
+        st.stop()
+    return build_agent(load_database(), api_key)
 
-    # Run the agent
-    try:
-        response = agent_executor.run(user_input)
-    except Exception as e:
-        response = f"❌ Error: {str(e)}"
 
-    # Display agent message
-    st.chat_message("assistant").write(response)
-    st.session_state.messages.append({"role": "assistant", "content": response})
+def main() -> None:
+    st.set_page_config(page_title="Company Chatbot", layout="wide")
+    st.title("Company Assistant Chatbot")
+    st.caption("Ask questions about orders, products, and customers in plain English.")
+
+    agent = get_agent()
+
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    for msg in st.session_state.messages:
+        st.chat_message(msg["role"]).write(msg["content"])
+
+    question = st.chat_input("Ask me about orders, products, stock...")
+    if question:
+        st.chat_message("user").write(question)
+        st.session_state.messages.append({"role": "user", "content": question})
+
+        with st.chat_message("assistant"):
+            with st.spinner("Querying the database..."):
+                try:
+                    answer = get_response(agent, question)
+                except Exception as exc:  # noqa: BLE001 - surfaced to the user
+                    answer = f"Sorry, something went wrong: {exc}"
+            st.write(answer)
+
+        st.session_state.messages.append({"role": "assistant", "content": answer})
+
+
+if __name__ == "__main__":
+    main()
