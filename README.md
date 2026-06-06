@@ -1,150 +1,98 @@
+# Company Chatbot — Natural-Language SQL Assistant
 
-# 🤖 Company Chatbot – GPT-Powered Assistant for SQL Databases
+Ask questions about a company database in plain English and get answers back.
+The app connects an OpenAI chat model to a SQLite database through a LangChain
+SQL agent, all behind a Streamlit chat interface.
 
-This is a smart AI chatbot that connects **OpenAI's GPT-3.5** with a **company database** using **LangChain**. It answers customer or business questions in plain language by querying a real SQLite database — all through an interactive **Streamlit web app**.
+## What it does
 
----
+You type a question, the agent decides what SQL to run, runs it, and returns the
+answer in natural language. Example questions:
 
-## 🧠 What It Can Do
+- "What is the status of order 102?"
+- "Which products are out of stock?"
+- "What did Maria T. order?"
+- "How many orders has customer ID 25 placed?"
 
-- Understand questions like:  
-  👉 “What is the status of order 102?”  
-  👉 “Which products are out of stock?”  
-  👉 “What did Maria T. order?”  
-  👉 “How many orders has customer ID 25 placed?”
+## How it works
 
-- Automatically:
-  - 🧠 Understands the question using GPT
-  - 🔎 Chooses the right SQL query to answer it
-  - 📊 Executes the query on the database
-  - 💬 Returns the result in natural language
+1. The user asks a question in plain English.
+2. The LangChain SQL agent inspects the database schema and writes a SQL query.
+3. The query runs against the SQLite database.
+4. The agent returns the result as a natural-language answer.
 
----
+## Results
 
-## 🛠 Built With
+Tested on a set of questions against `mock_company.db`. Accuracy below is whether
+the returned answer matched the correct value in the database.
 
-| Tool           | Purpose                             |
-|----------------|-------------------------------------|
-| Python         | Core language                       |
-| LangChain      | Agent, tool and memory handling     |
-| OpenAI         | GPT-3.5 model                       |
-| SQLite         | Example company database            |
-| Streamlit      | User interface (chat-style)         |
-| SQLAlchemy     | Database access layer               |
-| Python-dotenv  | Secure API key management           |
+| Question | SQL generated (summary) | Correct? |
+|---|---|---|
+| Status of order 102? | `SELECT status FROM orders WHERE id = 102` | Yes |
+| Products out of stock? | `SELECT name FROM products WHERE stock = 0` | Yes |
+| Orders placed by customer 25? | `SELECT COUNT(*) FROM orders WHERE customer_id = 25` | Yes |
+| _(add the rest of your tested cases here)_ | | |
 
----
+> Replace this table with your own results. Run `eval.py` (below) to generate it,
+> then paste in the real numbers and note any questions the agent got wrong and why.
 
-## 📸 Screenshot
+## Built with
 
-![Screenshot](chat_screenshot.jpeg)
+| Tool | Purpose |
+|---|---|
+| Python | Core language |
+| LangChain | SQL agent and tooling |
+| OpenAI | Chat model (gpt-4o-mini) |
+| SQLite | Example company database |
+| Streamlit | Chat interface |
+| python-dotenv | API key management |
 
----
+## Screenshot
 
-## 🚀 How to Run It Locally
+![Chat screenshot](chat_screenshot.jpeg)
 
-### 1. Clone the Repo
+## Run it locally
 
 ```bash
-git clone https://github.com/yourusername/company-chatbot-sql.git
+# 1. Clone
+git clone https://github.com/dimitrisdiam/company-chatbot-sql.git
 cd company-chatbot-sql
-```
 
-### 2. Create a Virtual Environment (Optional but Recommended)
-
-```bash
+# 2. Create a virtual environment
 python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-```
+source venv/bin/activate        # Windows: venv\Scripts\activate
 
-### 3. Install the Requirements
-
-```bash
+# 3. Install dependencies
 pip install -r requirements.txt
+
+# 4. Add your OpenAI API key
+cp .env.example .env            # then edit .env and paste your key
 ```
 
-### 4. Add Your OpenAI API Key
-
-Create a file called `.env` in the root folder:
-
-```bash
-touch .env
-```
-
-Inside it, paste:
+Your `.env` should contain:
 
 ```
 OPENAI_API_KEY=your-openai-key-here
 ```
 
-(You can get an API key at https://platform.openai.com/account/api-keys)
-
-### 5. Run the App
+Get a key at https://platform.openai.com/account/api-keys.
 
 ```bash
+# 5. Run
 streamlit run chatbot_app.py
 ```
 
-Your chatbot will launch in the browser!
+## Example database
 
----
+`mock_company.db` is a small SQLite database with `orders`, `customers`, and
+`products` tables. Swap in your own data with the same structure to use it on a
+real database.
 
-## 🧾 Example Database
+## Security notes
 
-This project includes a mock database `mock_company.db` with sample tables like:
+The app runs locally and sends data only to the OpenAI API. Never commit your
+real `.env` — commit `.env.example` instead.
 
-- `orders`
-- `customers`
-- `products`
+## Author
 
-You can replace it with your own company data as long as it follows SQL standards.
-
----
-
-## 🔒 Security Notes
-
-- This app runs locally and never sends your data anywhere except OpenAI’s API.
-- Do not expose your real `.env` file publicly — use `.env.example` instead.
-
----
-
-## 💼 Use Cases
-
-- Customer service bot
-- Business intelligence assistant
-- Internal tool for support teams
-- AI + SQL learning project
-
----
-
-## 🧠 How It Works Internally
-
-1. The user types a question in plain language
-2. LangChain's **AgentExecutor** uses GPT to:
-   - Decide if it needs to use a tool (like SQL)
-   - Build and validate the SQL query
-   - Run the query
-3. The result is shown in a friendly format
-
-Optionally, it uses memory to:
-- Track past questions and answers
-- Handle follow-up questions naturally
-
----
-
-## 📦 File Structure
-
-```
-📁 company-chatbot-sql/
-├── chatbot_app.py         ← Main Streamlit app
-├── mock_company.db        ← SQLite company database
-├── requirements.txt       ← Project dependencies
-├── .env.example           ← Sample API key config
-└── README.md              ← This file
-```
-
----
-
-## 🙋 About the Author
-
-Built by [Dimitrios Diamantidis](https://github.com/yourusername), a data specialist who loves combining AI with real business tools.
+Built by Dimitrios Diamantidis.
